@@ -5,8 +5,8 @@ model{
   for(i in 1:y.obs){
     
     y[i] ~ dbern(p[i])
-    logit(mu[i]) <- alpha + b1*fem_age[i] + b2*breed_date[i] #add additional terms as needed
-    p[i] <- mu[i]
+    logit(p[i]) <- alpha + b1*fem_age[i] + b2*breed_date[i] #add additional terms as needed
+   
     
   }#close loop i
   
