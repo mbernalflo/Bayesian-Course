@@ -18,8 +18,8 @@ model{
   sigma ~ dgamma(.001,.001) #dunif has 2 argument (lower, upper) 
   tau <- 1/sigma^2
   
-  
-  
 } #close model
 
-## MUST have at least 1 blank line after model closes
+
+
+## MUST contain empty line
