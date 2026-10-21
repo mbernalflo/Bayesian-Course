@@ -27,12 +27,30 @@ data <- list(
 ) 
 data
 
+# inits <- list(
+#   list(
+#     alpha=1,
+#     b1=0.1,
+#     b2=0.1
+#   ))
+
 inits <- list(
   list(
     alpha=1,
     b1=0.1,
     b2=0.1
-  ))
+  ),
+  list(
+    alpha=10,
+    b1=0.005,
+    b2=-0.5
+  ),
+  list(
+    alpha=-1,
+    b1=-0.01,
+    b2=-0.001
+  )
+)
 
 
 model <- "JAGS_fledgemodel.R"
@@ -41,7 +59,9 @@ jm <- jags.model(model,
                  data=data, 
                  n.adapt=5000, 
                  inits=inits, 
-                 n.chains=1) 
+                 #n.chains=1
+                 n.chains=3
+                 ) 
 
 
 burn.in <- 10000

@@ -25,12 +25,30 @@ data <- list(
 ) 
 data
 
+# inits <- list(
+#   list(
+#     alpha=1,
+#     b1=0.1,
+#     sigma=1
+#   ))
+
 inits <- list(
   list(
     alpha=1,
-    b1=0.1,
+    b1=-0.1,
     sigma=1
-  ))
+  ),
+  list(
+    alpha=20,
+    b1=-0.7,
+    sigma=5
+  ),
+  list(
+    alpha=10,
+    b1=-1,
+    sigma=10
+  )
+)
 
 
 model <- "JAGS_breeddatemodel.R"
@@ -39,7 +57,9 @@ jm <- jags.model(model,
                  data=data, 
                  n.adapt=5000, 
                  inits=inits, 
-                 n.chains=1) 
+                 #n.chains=1
+                 n.chains=3
+                 ) 
 
 
 burn.in <- 10000
