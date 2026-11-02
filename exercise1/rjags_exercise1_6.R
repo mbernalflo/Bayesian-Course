@@ -1,0 +1,241 @@
+rm(list=ls())
+
+library(boot)
+library(rjags)
+library(coda)
+library(scales)
+
+load.module("glm")
+
+#file.choose() #use this to find your file and create your working directory pathway
+
+setwd("C:/Users/mabe2494/Documents/PhD/Bayesian Course/exercise1/") #set your working directory to your working folder
+breed<-read.csv("bird_data.csv", header=T) #bring in the data
+
+names(breed)
+#[1] "year"           "nest_success"   "breeding_date"  "fem_age"        "clutch_size"    "chicks_fledged"
+str(breed)
+summary(breed) 
+
+data <- NULL
+data <- list(
+  y=breed$chicks_fledged, #the response variable
+  y.obs=nrow(breed), #the number of observations
+  fem_age=breed$fem_age, #explanatory variable
+  breed_date=breed$breeding_date, #explanatory variable
+  #fem_age=as.vector(scale(breed$fem_age)), #explanatory variable
+  #breed_date=as.vector(scale(breed$breeding_date)), #explanatory variable
+  clutch_size=breed$clutch_size
+) 
+data
+
+#### --------------------  ex.5 -------------------- ####
+
+inits5 <- list(
+  list(
+    alpha=1,
+    b1=0.1,
+    b2=0.1
+  ))
+
+# inits5 <- list(
+#   list(
+#     alpha=1,
+#     b1=0.1,
+#     b2=0.1
+#   ),
+#   list(
+#     alpha=10,
+#     b1=0.005,
+#     b2=-0.5
+#   ),
+#   list(
+#     alpha=-1,
+#     b1=-0.01,
+#     b2=-0.001
+#   )
+# )
+
+
+model5 <- "JAGS_fledgemodel.R"
+
+jm5 <- jags.model(model5,
+                 data=data, 
+                 n.adapt=5000, 
+                 inits=inits5, 
+                 n.chains=1
+                 #n.chains=3
+) 
+
+
+burn.in <- 10000
+
+update(jm5, n.iter=burn.in) 
+
+
+samples <- 10000
+n.thin <- 5
+
+#sample the MCMC chains using CODA
+
+zc5 <- coda.samples(jm5,
+                   variable.names=c("alpha", "b1", "b2"), 
+                   n.iter=samples, 
+                   thin=n.thin)
+
+summary(zc5)
+plot(zc5) 
+
+plot(zc5)
+
+
+HPDinterval(zc5, prob=0.95) #give the 95% CIs
+HPDinterval(zc5, prob=0.99) #give the 99% CIs
+#         lower        upper
+# alpha  0.90599973  1.779518366
+# b1     0.01541111  0.603563987
+# b2    -0.04509379 -0.000602824
+# attr(,"Probability")
+# [1] 0.99
+
+coda.matrix <- as.matrix(zc5[[1]]) #collect the chains as a matrix to save or plot
+head(coda.matrix)
+
+
+
+#sample the MCMC chains using JAGS.samples
+
+zj5 <- jags.samples(jm5, 
+                   variable.names=c("b1", "b2"), 
+                   n.iter=samples, 
+                   thin=n.thin)
+
+ecdf(zj5$b1)(0) #see what proportion of the posterior is below 0 
+ecdf(zj5$b2)(0) #see what proportion of the posterior is below 0 
+
+
+pred1 <- summary(zj5$b1, quantile, c(.025,.5,.975))$stat #get the 95% CIs and median from a jags.samples object
+pred2 <- summary(zj5$b2, quantile, c(.025,.5,.975))$stat #get the 95% CIs and median from a jags.samples object
+
+
+#MCMC convergence diagnostics (from coda.samples())
+raftery.diag(zc5)
+heidel.diag(zc5)
+gelman.diag(zc5) #needs at least 2 chains
+
+#### -------------- ex.3 -------------- ####
+inits3 <- list(
+  list(
+    alpha=1,
+    b1=-0.03,
+    b2=0.1,
+    sigma=1
+  ),
+  list(
+    alpha=10,
+    b1=0.005,
+    b2=0.5,
+    sigma=5
+  ),
+  list(
+    alpha=20,
+    b1=-0.02,
+    b2=0.001,
+    sigma=0.1
+  )
+)
+
+
+model3 <- "JAGS_clutchsizemodel.R"
+
+jm3 <- jags.model(model3,
+                 data=data, 
+                 n.adapt=5000, 
+                 inits=inits3, 
+                 n.chains=3) 
+
+
+burn.in <- 10000
+
+update(jm3, n.iter=burn.in) 
+
+
+samples <- 10000
+n.thin <- 5
+
+#sample the MCMC chains using CODA
+
+zc3 <- coda.samples(jm3,
+                  variable.names=c("alpha", "b1", "b2", "sigma"), 
+                  n.iter=samples, 
+                  thin=n.thin)
+
+summary(zc3)
+plot(zc3) 
+
+
+#MCMC convergence diagnostics (from coda.samples())
+raftery.diag(zc3)
+heidel.diag(zc3)
+gelman.diag(zc3) #needs at least 2 chains
+
+
+#### -------- ex.2 -------- ####
+
+inits2 <- list(
+  list(
+    alpha=1,
+    b1=0.1,
+    b2=0.1
+  ),
+  list(
+    alpha=5,
+    b1=0.5,
+    b2=0.5
+  ),
+  list(
+    alpha=2,
+    b1=0.0005,
+    b2=0.0001
+  )
+)
+
+# inits <- list(
+#      list(
+#        alpha=5,
+#        b1=0.5,
+#        b2=0.5
+#     ))
+
+model2 <- "JAGS_nestsuccmodel.R"
+
+jm2 <- jags.model(model2,
+                 data=data, 
+                 n.adapt=5000, 
+                 inits=inits2, 
+                 n.chains=3) 
+
+
+burn.in <- 10000
+
+update(jm2, n.iter=burn.in) 
+
+
+samples <- 10000
+n.thin <- 5
+
+#sample the MCMC chains using CODA
+
+zc2 <- coda.samples(jm2,
+                   variable.names=c("alpha", "b1", "b2"), 
+                   n.iter=samples, 
+                   thin=n.thin)
+
+summary(zc2)
+plot(zc2) 
+
+#MCMC convergence diagnostics (from coda.samples())
+raftery.diag(zc2)
+heidel.diag(zc2)
+gelman.diag(zc2) #needs at least 2 chains
+
