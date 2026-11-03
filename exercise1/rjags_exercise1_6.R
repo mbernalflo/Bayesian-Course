@@ -22,9 +22,8 @@ data <- list(
   y=breed$chicks_fledged, #the response variable
   y.obs=nrow(breed), #the number of observations
   fem_age=breed$fem_age, #explanatory variable
-  breed_date=breed$breeding_date, #explanatory variable
-  #fem_age=as.vector(scale(breed$fem_age)), #explanatory variable
-  #breed_date=as.vector(scale(breed$breeding_date)), #explanatory variable
+  #breed_date=breed$breeding_date, #explanatory variable
+  breed_date=as.vector(scale(breed$breeding_date)), #explanatory variable
   clutch_size=breed$clutch_size
 ) 
 data
