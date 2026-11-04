@@ -10,62 +10,59 @@ load.module("glm")
 #file.choose() #use this to find your file and create your working directory pathway
 
 setwd("C:/Users/mabe2494/Documents/PhD/Bayesian Course/exercise6/") #set your working directory to your working folder
-storm<-read.csv("storm.csv", header=T) #bring in the data
+storm_data<-read.csv("storm.csv", header=T) #bring in the data
 
-names(storm)
+names(storm_data)
 #"year"       "storm"  
-str(storm)
-summary(storm) 
+str(storm_data)
+summary(storm_data) 
 
-plot(storm$transect.distance, storm$count)
+plot(storm_data$year, storm_data$storm)
 
 data <- NULL
 data <- list(
-  storm_severity=storm$storm, #the response variable
-  y.obs=nrow(storm$storm), #the number of observations
-  trans_dist=storm$year, #explanatory variable
-  x.pred=seq(from=min(storm$transect.distance), to=max(storm$transect.distance), .1)
+  storm_severity=storm_data$storm, #the response variable
+  y.obs=nrow(storm_data), #the number of observations
+  year=storm_data$year, #explanatory variable
+  x.pred=seq(from=min(storm_data$year), to=max(storm_data$year), .1)
 ) 
 data
 
-# inits <- list(
-#   list(
-#     Vmax=3,
-#     h=80,
-#     n=-50,
-#     d=0.1
-#   ))
-
 inits <- list(
   list(
-    Vmax=30,
-    h=80,
-    n=-50,
-    d=0.1
-  ),
-  list(
-    Vmax=1,
-    h=5,
-    n=2,
-    d=0.99
-  ),
-  list(
-    Vmax=200,
-    h=0.1,
-    n=10,
-    d=0.001
-  )
-)
+    alpha=40,
+    alpha_sigma=1,
+    b_year=0.09,
+    b_sigma=0.1
+  ))
+
+# inits <- list(
+#   list(
+#    alpha=3,
+#    b_year=80,
+#    sigma=-50
+#   ),
+#   list(
+#    alpha=3,
+#    b_year=80,
+#    sigma=-50
+#   ),
+#   list(
+#    alpha=3,
+#    b_year=80,
+#    sigma=-50
+#   ),
+# )
 
 
-model <- "JAGS_lichenmodel.R"
+model <- "JAGS_stormmodel.R"
 
 jm <- jags.model(model,
                  data=data, 
                  n.adapt=5000, 
                  inits=inits, 
-                 #n.chains=1
-                 n.chains=3
+                 n.chains=1
+                 #n.chains=3
 ) 
 
 
@@ -80,16 +77,23 @@ n.thin <- 5
 #sample the MCMC chains using CODA
 
 zc <- coda.samples(jm,
-                   variable.names=c("Vmax", "h", "n", "d"), 
+                   variable.names=c("alpha","alpha_sigma", "b_year", "b_sigma"), 
                    n.iter=samples, 
                    thin=n.thin)
 
 summary(zc)
-#          2.5%      25%      50%      75%    97.5%
-# Vmax    2.3685   2.6323   2.7798   2.9280   3.2393
-# d       0.1706   0.2487   0.2936   0.3445   0.4532
-# h      77.4471  80.2479  81.9852  83.5975  85.0410
-# n    -154.0656 -94.5300 -59.6528 -37.5880 -18.5726
+#                2.5%      25%     50%     75%   97.5%
+# alpha       36.63136 39.16649 40.5256 41.9749 44.5479
+# alpha_sigma 12.32833 14.29096 15.3396 16.4245 18.7487
+# b_sigma      0.09683  0.17925  0.2257  0.2707  0.3524
+# b_year      -0.07539  0.03338  0.0882  0.1435  0.2442
+
+#                  2.5%       25%       50%      75%   97.5%
+# alpha       36.309076 39.065833 40.586227 42.01278 44.6704
+# alpha_sigma  2.623719  2.723702  2.781597  2.83993  2.9501
+# b_sigma      0.004141  0.007856  0.009834  0.01175  0.0158
+# b_year      -0.067036  0.029808  0.087819  0.14477  0.2582
+
 plot(zc) 
 
 #HPDinterval(zc, prob=0.95) #give the 95% CIs
@@ -105,41 +109,62 @@ coda.matrix <- as.matrix(zc[[1]]) #collect the chains as a matrix to save or plo
 head(coda.matrix)
 
 
-
 #sample the MCMC chains using JAGS.samples
 
 zj <- jags.samples(jm, 
-                   variable.names=c("Vmax", "h","n", "output_lichen"), 
+                   variable.names=c("alpha", "b_year", "output_storm", "output_sigma", "sim_out"), 
                    n.iter=samples, 
                    thin=n.thin)
 
 
 
-pred_lichen <- summary(zj$output_lichen, quantile, c(.025,.5,.975))$stat #get the 95% CIs and median from a jags.samples object
+pred_storm <- summary(zj$output_storm, quantile, c(.025,.5,.975))$stat #get the 95% CIs and median from a jags.samples object
+pred_sigma <- summary(zj$output_sigma, quantile, c(.025,.5,.975))$stat #get the 95% CIs and median from a jags.samples object
+sim_out <- summary(zj$sim_out, quantile, c(0.025, 0.25, 0.5, 0.75, 0.975))$stat #get the 95% CIs and median from a jags.samples object
 
 #plotting prediction & 95%CIs using polygon
-pred <- summary(zj$output_lichen, quantile, c(.025,.5,.975))$stat
 x <- data$x.pred
-y <- pred
+y <- pred_storm
 
 
-#plot the second row (median expectation)
-plot(NA,NA, xlim=c(-0.5,180) ,ylim=c(-0.5,5.5), typ="n")
+#plot 
+par(mfrow=c(1,2))
+
+#plot for mean
+plot(NA,NA, xlim=c(-0.5,55) ,ylim=c(-0.5,105), typ="n", xlab="Year", ylab="Storm severity")
 #plot(x,y[2,], col="blue", xlab="Date", ylab="Number of chicks fledged", cex=1.4, typ="l", tck=0.03, bty="l", ylim=c(0,10)) #plot the median
 
-points(jitter(lichen$transect.distance, factor = 1), jitter(lichen$count, factor = 1))
+points(storm_data$year, storm_data$storm)
 
 lines(x,y[2,], col="blue")
 
-#plot the 1st and 3rd rows (95% CIs) as a polygon or lines
-
-#lines(x,y[1,], lty="dashed", col="blue") # add lower CI (if wanted)
-#lines(x,y[3,], lty="dashed", col="blue") #add upper CI (if wanted)
-
-#if you want to make the colour of the polygon 'see through' use the scales package
-#and the alpha() function within any col argumnent in R plotting (adjust alpha to make it more or less transparent)
-
 polygon(c(x,rev(x)), c(y[1,], rev(y[3,])), col=alpha("blue", alpha=0.1), border=alpha("blue", alpha=0.1)) 
+
+
+#plot for standard deviation
+plot(NA,NA, xlim=c(-0.5,55) ,ylim=c(-5,105), typ="n", xlab="Year", ylab="SD storm severity")
+points(storm_data$year, storm_data$storm)
+
+
+lines(x,pred_sigma[2,], col="blue")
+polygon(x=c(x, rev(x)), y=c(pred_sigma[1,], rev(pred_sigma[3,])), density=30, col="blue", angle=4)
+
+
+# 
+
+
+
+
+
+#plot for simulated data to check that it matches my data
+par(mfrow=c(1,1))
+
+plot(x=storm_data$year, y=storm_data$storm, typ="p", pch=16, col=alpha("blue", 0.4))
+lines(x=data$x.pred, y=sim_out[2,], lty=2, col="red", lwd=2)
+lines(x=data$x.pred, y=sim_out[4,], lty=2, col="red", lwd=2)
+lines(x=data$x.pred, y=sim_out[1,], lty=2, col="dark blue", lwd=2)
+lines(x=data$x.pred, y=sim_out[5,], lty=2, col="dark blue", lwd=2)
+polygon(x=c(x, rev(x)), y=c(sim_out[1,], rev(sim_out[5,])), col= alpha("dark blue", alpha=0.1))
 
 
 

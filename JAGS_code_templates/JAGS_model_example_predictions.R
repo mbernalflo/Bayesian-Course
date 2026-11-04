@@ -16,6 +16,8 @@ model{
 		y[i] ~ dnorm(mu[i], tau)
 		mu[i] <- alpha + b1*age[i] + b2*date[i] #add additional terms as needed
 		
+		y.sim[i] ~ likelihood(parameter1, parameter2)  #here use the SAME likelihood and parameters as above but it is called y.sim[i] instead of y[i]
+		
 	}#close likelihood loop i
 	
 #priors	
@@ -37,6 +39,25 @@ output[j]<-alpha + b1*5 + b2*x.pred[j] #expected value of y when age=5 and date=
 
 } #close prediction loop j
 
+	#model fit calculations
+	#means
+	mean.y <-mean(y[]) #y is the name of your response variable
+	mean.y.sim <-mean(y.sim[]) #y.sim is name of your sim variable
+	p.mean <-step(mean.y.sim - mean.y) 
+	
+	#coeff variation
+	cv.y <- sd(y[ ])/mean(y[ ]) #y is the name of your response variable
+	cv.y.sim <- sd(y.sim[])/mean(y.sim[ ]) #y.sim is name of your sim variable
+	p.cv <- step(cv.y.sim-cv.y)
+	
+	#sum of squares
+	for(j in 1:nobs){
+	  sq[j] <- (y[j]-        )^2 #insert expected outcome from likelihood
+	  sq.sim[j] <- (y.sim[j]-         )^2 #insert expected outcome from likelihood
+	}
+	fit <- sum(sq[])
+	fit.sim <- sum(sq.sim[])
+	p.fit <- step(fit.sim-fit)
 
 } #close model
 
