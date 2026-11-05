@@ -32,6 +32,12 @@ model{
   #ONLY use a loop for multiple prediction generation
   #if you only need to estimate 1 or a few derived variables...don't use a loop, just ask for what you want directly 
   
+  for(k in 1:length(x.pred)){
+
+    log(out_lambda[k]) <- (a_alpha * x.pred[k])/(b_alpha + x.pred[k]) + b_dist*mean(disturbance) #expected value of y when age=5 and date=ranges from 1 to 10
+
+  } #close prediction loop k
+  
   # for(k in 1:length(x.pred)){
   # 
   #   log(out_lambda[k]) <- mu_alpha + b_dist*x.pred[k] #expected value of y when age=5 and date=ranges from 1 to 10

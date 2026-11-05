@@ -23,7 +23,7 @@ names(plant_d)
 #[1] "plot.id"        "study.area"     "disturbance"    "number.exotics"
 str(plant_d)
 summary(plant_d) 
-plot(plant_d$disturbance, plant_d$number.exotics)
+plot(road_d$road.density, plant_d$number.exotics)
 
 data <- NULL
 data <- list(
@@ -33,7 +33,9 @@ data <- list(
   disturbance=plant_d$disturbance, #explanatory variable
   study.area=plant_d$study.area,
   road.density=road_d$road.density,
-  x.pred=seq(from=min(plant_d$disturbance), to=max(plant_d$disturbance), .0001)
+  #x.pred=seq(from=min(plant_d$disturbance), to=max(plant_d$disturbance), .0001)
+  x.pred=seq(from=min(road_d$road.density), to=max(road_d$road.density), .0001)
+  
 ) 
 data
 
@@ -159,12 +161,12 @@ y <- pred_exot
 par(mfrow=c(1,1))
 
 #plot for mean
-plot(NA,NA, xlim=c(-0.01,0.31) ,ylim=c(-0.05,31), typ="n", xlab="Disturbance", ylab="Number exotic species")
+plot(NA,NA, xlim=c(1,8) ,ylim=c(5,8), typ="n", xlab="Road density", ylab="Number exotic species")
 #plot(x,y[2,], col="blue", xlab="Date", ylab="Number of chicks fledged", cex=1.4, typ="l", tck=0.03, bty="l", ylim=c(0,10)) #plot the median
 
 points(plant_d$disturbance, plant_d$number.exotics)
 
-lines(x,y[2,], col="blue")
+#lines(x,y[2,], col="blue")
 
 polygon(c(x,rev(x)), c(y[1,], rev(y[3,])), col=alpha("blue", alpha=0.3), border=alpha("blue", alpha=0.3)) 
 
