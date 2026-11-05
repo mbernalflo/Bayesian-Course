@@ -13,14 +13,17 @@ model{
   }#close likelihood loop i
   
   for(j in 1:n.groups){
-    alpha[j] ~ dnorm(mu_alpha, tau_alpha)
+    alpha[j] ~ dnorm(mu_alpha[j], tau_alpha)
+    mu_alpha[j] <- (a_alpha * road.density[j])/(b_alpha + road.density[j])
   }
   
   #priors	
   
   b_dist ~ dnorm(0,0.00001) #dnorm has 2 arguments (mean, precision)
   #alpha ~ dnorm(0,0.00001)
-  mu_alpha ~ dnorm(0,0.0001)
+  #mu_alpha ~ dnorm(0,0.0001)
+  a_alpha ~ dunif(0,5)
+  b_alpha ~ dunif(0,2)
   sigma_alpha ~ dunif(0,50) #dunif has 2 argument (lower, upper) 
   tau_alpha <- 1/sigma_alpha^2
   
@@ -35,12 +38,13 @@ model{
   # 
   # } #close prediction loop k
   
-  for(j in 1:n.groups){
-    for(k in 1:length(x.pred)){
-      log(out_lambda[k,j]) <- alpha[j] + b_dist*x.pred[k]
-    }
-  }
-  
+  #for fun
+  # for(j in 1:n.groups){
+  #   for(k in 1:length(x.pred)){
+  #     log(out_lambda[k,j]) <- alpha[j] + b_dist*x.pred[k]
+  #   }
+  # }
+  # 
   #model fit calculations
   #means
   # mean.y <-mean(y[]) #y is the name of your response variable

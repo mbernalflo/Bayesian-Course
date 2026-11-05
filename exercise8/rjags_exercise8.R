@@ -32,6 +32,7 @@ data <- list(
   n.groups=nrow(road_d),
   disturbance=plant_d$disturbance, #explanatory variable
   study.area=plant_d$study.area,
+  road.density=road_d$road.density,
   x.pred=seq(from=min(plant_d$disturbance), to=max(plant_d$disturbance), .0001)
 ) 
 data
@@ -42,7 +43,9 @@ inits <- list(
     alpha=rep(1,8),
     b_dist=8,
     sigma_alpha=0.1,
-    mu_alpha=8
+    #mu_alpha=8
+    a_alpha=1,
+    b_alpha=0.4
     
   ))
 # 
@@ -87,7 +90,7 @@ n.thin <- 5
 #sample the MCMC chains using CODA
 
 zc <- coda.samples(jm,
-                   variable.names=c("alpha", "b_dist"), 
+                   variable.names=c("alpha", "b_dist", "a_alpha", "b_alpha"), 
                    n.iter=samples, 
                    thin=n.thin)
 
@@ -97,7 +100,7 @@ summary(zc)
 # alpha  0.5142 0.5768 0.612 0.6455 0.7074
 # b_dist 7.8229 8.1075 8.263 8.4045 8.6786
 
-#values with hierarchical model
+#values with hierarchical model on the intercept but no deterministic
 #            2.5%    25%    50%    75%  97.5%
 # alpha[1] 0.6206 0.7124 0.7592 0.8019 0.8890
 # alpha[2] 0.3232 0.4062 0.4508 0.4966 0.5803
@@ -109,6 +112,19 @@ summary(zc)
 # alpha[8] 0.5353 0.6118 0.6514 0.6914 0.7673
 # b_dist   7.8351 8.0827 8.2338 8.3825 8.6489
 
+#values with hierarchical model with deterministic
+#           2.5%    25%    50%    75%  97.5%
+# a_alpha  0.6359 0.7554 0.8273 0.9024 1.0565
+# alpha[1] 0.6382 0.7287 0.7759 0.8194 0.8982
+# alpha[2] 0.3030 0.3862 0.4295 0.4737 0.5526
+# alpha[3] 0.4981 0.5823 0.6258 0.6649 0.7393
+# alpha[4] 0.5519 0.6383 0.6828 0.7260 0.7992
+# alpha[5] 0.4861 0.5799 0.6269 0.6700 0.7511
+# alpha[6] 0.4808 0.5667 0.6122 0.6582 0.7404
+# alpha[7] 0.4766 0.5574 0.6014 0.6436 0.7212
+# alpha[8] 0.4925 0.5828 0.6275 0.6672 0.7404
+# b_alpha  0.2366 0.5930 0.8314 1.1498 1.8280
+# b_dist   7.8005 8.0669 8.2169 8.3812 8.7132
 
 plot(zc) 
 
@@ -136,6 +152,7 @@ pred_exot <- summary(zj$out_lambda, quantile, c(.025,.5,.975))$stat #get the 95%
 #plotting prediction & 95%CIs using polygon
 x <- data$x.pred
 y <- pred_exot
+#y1 <- pred_exot[,,1]
 
 
 #plot 
