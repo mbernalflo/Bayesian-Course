@@ -17,6 +17,11 @@ names(vague_d)
 str(vague_d)
 summary(vague_d) 
 
+mean(vague_d$weight[vague_d$treatment=="a"])
+mean(vague_d$weight[vague_d$treatment=="b"])
+mean(vague_d$weight[vague_d$treatment=="c"])
+
+
 #plot(storm_data$year, storm_data$storm)
 
 data <- NULL
@@ -31,10 +36,10 @@ data
 
 inits <- list(
   list(
-    alpha=1,
+    alpha=4,
     treat_b=0.09,
     treat_c=0.1,
-    sigma=0.1
+    sigma=40
   ))
 
 # inits <- list(
@@ -79,22 +84,65 @@ n.thin <- 5
 #sample the MCMC chains using CODA
 
 zc <- coda.samples(jm,
-                   variable.names=c("alpha","treat_b", "treat_c"), 
+                   variable.names=c("alpha","treat_b", "treat_c", "output_a", "output_b", "output_c", "sigma" ), 
                    n.iter=samples, 
                    thin=n.thin)
 
 summary(zc)
-#                2.5%      25%     50%     75%   97.5%
-# alpha       36.63136 39.16649 40.5256 41.9749 44.5479
-# alpha_sigma 12.32833 14.29096 15.3396 16.4245 18.7487
-# b_sigma      0.09683  0.17925  0.2257  0.2707  0.3524
-# b_year      -0.07539  0.03338  0.0882  0.1435  0.2442
 
-#                  2.5%       25%       50%      75%   97.5%
-# alpha       36.309076 39.065833 40.586227 42.01278 44.6704
-# alpha_sigma  2.623719  2.723702  2.781597  2.83993  2.9501
-# b_sigma      0.004141  0.007856  0.009834  0.01175  0.0158
-# b_year      -0.067036  0.029808  0.087819  0.14477  0.2582
+#with the wrong priors
+#          Mean     SD Naive SE Time-series SE
+# alpha    416.0  7.948   0.1777         0.1777
+# output_a 416.0  7.948   0.1777         0.1777
+# output_b 959.0 10.839   0.2424         0.2713
+# output_c 687.1  6.970   0.1559         0.1559
+# treat_b  542.9 15.160   0.3390         0.3804
+# treat_c  271.1 11.043   0.2469         0.2569
+# 
+# 2. Quantiles for each variable:
+#   
+#   2.5%   25%   50%   75% 97.5%
+# alpha    401.7 410.5 415.9 421.3 432.8
+# output_a 401.7 410.5 415.9 421.3 432.8
+# output_b 935.8 951.7 960.0 966.5 978.7
+# output_c 673.2 682.4 687.3 691.7 700.9
+# treat_b  511.8 532.8 543.9 553.8 570.5
+# treat_c  249.1 263.9 271.6 278.5 291.8
+
+#wíth the real flat priors
+#           Mean    SD Naive SE Time-series SE
+# alpha    394.84 6.068  0.13568        0.13568
+# output_a 394.84 6.068  0.13568        0.13568
+# output_b 993.78 6.435  0.14389        0.14389
+# output_c 699.50 5.483  0.12261        0.12954
+# sigma     32.31 2.534  0.05667        0.05422
+# treat_b  598.94 8.820  0.19723        0.19723
+# treat_c  304.66 8.182  0.18295        0.18924
+# 
+# 2. Quantiles for each variable:
+#   
+#   2.5%    25%    50%    75%  97.5%
+# alpha    383.11 390.62 394.75 398.88  406.6
+# output_a 383.11 390.62 394.75 398.88  406.6
+# output_b 980.41 989.59 993.71 997.98 1005.9
+# output_c 688.50 695.81 699.42 703.27  710.2
+# sigma     27.79  30.51  32.16  33.97   37.8
+# treat_b  581.36 593.26 599.01 604.72  616.0
+# treat_c  288.30 299.23 304.99 309.89  320.1
+
+####       plot the priors       ####
+coda.matrix <- as.matrix(zc[[1]]) #collect the chains as a matrix to save or plot
+head(coda.matrix)
+
+par(mfrow=c(1,1))
+
+plot(density(coda.matrix[,1]), xlim=c(-200,700))
+prior_alpha <- density(coda.matrix[,2])
+lines(x=prior_alpha$x, y=prior_alpha$y, lty=2, col="red")
+
+plot(density(coda.matrix[,6]), xlim=c(-50,200))
+prior_sigma <- density(coda.matrix[,7])
+lines(x=prior_sigma$x, y=prior_sigma$y, lty=2, col="red")
 
 plot(zc) 
 
@@ -114,13 +162,15 @@ head(coda.matrix)
 #sample the MCMC chains using JAGS.samples
 
 zj <- jags.samples(jm, 
-                   variable.names=c("alpha", "b_year", "output_storm", "output_sigma", "sim_out"), 
+                   variable.names=c("alpha", "output_a", "output_b", "output_c", "diff_ba", "diff_ca", "diff_bc"), 
                    n.iter=samples, 
                    thin=n.thin)
 
+ecdf(zj$diff_ca)(0) #it is always more than 0, then treatment c has a higher mean than treatment a
+ecdf(zj$diff_ba)(0) #it is always more than 0, then treatment b has a higher mean than treatment a
+ecdf(zj$diff_bc)(0) #it is always more than 0, then treatment b has a higher mean than treatment c
 
-
-pred_storm <- summary(zj$output_storm, quantile, c(.025,.5,.975))$stat #get the 95% CIs and median from a jags.samples object
+pred_ca <- summary(zj$diff_ca, quantile, c(.025,.5,.975))$stat #get the 95% CIs and median from a jags.samples object
 pred_sigma <- summary(zj$output_sigma, quantile, c(.025,.5,.975))$stat #get the 95% CIs and median from a jags.samples object
 sim_out <- summary(zj$sim_out, quantile, c(0.025, 0.25, 0.5, 0.75, 0.975))$stat #get the 95% CIs and median from a jags.samples object
 
